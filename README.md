@@ -19,18 +19,6 @@ Built using:
 
 ---
 
-## 📦 Project Structure
-
-diabetes_linear_reg/
-│
-├── app.py # Streamlit app
-├── Linear_regression.py # Model training script
-├── regmodel.pkl # Saved model
-├── requirements.txt # Dependencies
-└── README.md
-
----
-
 ## Tech Used
 
 - Python
