@@ -1,136 +1,87 @@
-import streamlit as st
-import numpy as np
-import joblib
-
-# ------------------ PAGE CONFIG ------------------
-st.set_page_config(
-    page_title="Diabetes Risk Checker",
-    page_icon="🧠",
-    layout="centered"
-)
-
-# ------------------ LOAD MODEL ------------------
-try:
-    model = joblib.load("regmodel.pkl")
-except:
-    st.error("❌ Model file not found. Keep regmodel.pkl in same folder.")
-    st.stop()
-
-# ------------------ TITLE ------------------
-st.title("🧠 Diabetes Risk Checker")
-st.markdown("### Simple health check (not medical advice)")
-
-st.markdown("---")
-
-# ------------------ USER INPUT ------------------
-st.subheader("🧍 Basic Info")
-
-age = st.number_input("Age", 10, 80, 25)
-gender = st.radio("Gender", ["Female", "Male", "Other"])
-height = st.number_input("Height (cm)", 100, 220, 165)
-weight = st.number_input("Weight (kg)", 30, 150, 60)
-
-# BMI calculation
-bmi = weight / ((height / 100) ** 2)
-st.write(f"📊 Calculated BMI: **{bmi:.2f}**")
-
-st.markdown("---")
-
-st.subheader("🩺 Health Info")
-
-bp = st.selectbox("Blood Pressure Level", ["Normal", "High"])
-glucose = st.number_input("Blood Sugar Level", 70, 200, 100)
-
-family_history = st.selectbox("Family history of diabetes?", ["No", "Yes"])
-activity = st.selectbox("Physical Activity Level", ["Low", "Medium", "High"])
-
-st.markdown("---")
-
-# ------------------ CONVERSIONS ------------------
-
-gender = 1 if gender == "Male" else 0
-bp = 120 if bp == "Normal" else 150
-family_history = 1.0 if family_history == "Yes" else 0.3
-
-# approximate placeholders (model requirement)
-insulin = 80
-skin = 20
-pedigree = family_history
-pregnancies = 0
-cholesterol = 180
-
-# adjust based on activity (simple logic)
-if activity == "Low":
-    insulin += 20
-elif activity == "High":
-    insulin -= 10
-
-# ------------------ FINAL FEATURE VECTOR ------------------
-features = [
-    age, gender, bmi, bp, cholesterol,
-    insulin, glucose, skin, pedigree, pregnancies
-]
-
-# ------------------ PREDICT ------------------
 if st.button("🔍 Check Diabetes Risk"):
 
+    # BMI
+    bmi = weight / ((height / 100) ** 2)
+
+    # conversions
+    gender_val = 1 if gender == "Male" else 0
+    bp_val = 120 if bp == "Normal" else 150
+    family_val = 1.0 if family_history == "Yes" else 0.3
+
+    insulin = 80
+    if activity == "Low":
+        insulin += 20
+    elif activity == "High":
+        insulin -= 10
+
+    # feature vector (IMPORTANT ORDER)
+    features = [
+        age, gender_val, bmi, bp_val, 180,
+        insulin, fasting_glucose, 20, family_val, 0
+    ]
+
+    # ML prediction
     prediction = model.predict([features])[0]
+    score = max(0, min(int(prediction), 200))
+
+    # ------------------ CLINICAL LOGIC ------------------
+
+    risk_points = 0
+
+    if fasting_glucose >= 126:
+        risk_points += 2
+    elif fasting_glucose >= 100:
+        risk_points += 1
+
+    if post_glucose >= 200:
+        risk_points += 2
+    elif post_glucose >= 140:
+        risk_points += 1
+
+    if urination == "Yes":
+        risk_points += 1
+
+    if wound == "Yes":
+        risk_points += 1
+
+    final_score = score + (risk_points * 20)
+
+    # ------------------ OUTPUT ------------------
 
     st.subheader("📈 Result")
 
-    # normalize weird values (since regression output can be large)
-    score = max(0, min(int(prediction), 200))
+    st.progress(final_score)
 
-    st.progress(score)
-
-    if score < 100:
-        st.success(f"✅ Low Risk ({score})")
-    elif score < 140:
-        st.warning(f"⚠️ Moderate Risk ({score})")
+    if final_score < 80:
+        st.success(f"✅ Low Risk ({final_score})")
+    elif final_score < 130:
+        st.warning(f"⚠️ Moderate Risk ({final_score})")
     else:
-        st.error(f"🚨 High Risk ({score})")
+        st.error(f"🚨 High Risk ({final_score})")
 
     # ------------------ INSIGHTS ------------------
+
     st.subheader("💡 Quick Health Tips")
 
     tips = []
 
     if bmi > 25:
-        tips.append("⚖️ Try maintaining a healthy weight")
-    if glucose > 120:
+        tips.append("⚖️ Maintain healthy weight")
+    if fasting_glucose > 120:
         tips.append("🍭 Reduce sugar intake")
     if activity == "Low":
         tips.append("🏃 Increase physical activity")
-    if bp == 150:
-        tips.append("🫀 Monitor blood pressure regularly")
+    if bp_val == 150:
+        tips.append("🫀 Monitor blood pressure")
 
-    if tips:
-        for tip in tips:
-            st.write(tip)
-    else:
-        st.write("🎉 You're doing well. Keep it up!")
+    for tip in tips:
+        st.write(tip)
 
-    # ------------------ CHART ------------------
-    st.subheader("📊 Your Health Snapshot")
-
-    chart_data = {
-        "Age": age,
+    # chart
+    st.subheader("📊 Health Snapshot")
+    st.bar_chart({
         "BMI": bmi,
-        "Glucose": glucose,
-        "BP": bp,
+        "Glucose": fasting_glucose,
+        "BP": bp_val,
         "Insulin": insulin
-    }
-
-    st.bar_chart(chart_data)
-
-# ------------------ SIDEBAR ------------------
-st.sidebar.title("ℹ️ About")
-
-st.sidebar.write("""
-This app estimates diabetes risk using a machine learning model.
-
-⚠️ Not a medical diagnosis.
-""")
-
-st.sidebar.markdown("---")
-st.sidebar.write("Made by Angelina ✨")
+    })
