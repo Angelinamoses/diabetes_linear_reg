@@ -25,8 +25,8 @@ st.markdown("---")
 # ------------------ USER INPUT ------------------
 st.subheader("🧍 Basic Info")
 
-age = st.slider("Age", 10, 80, 25)
-gender = st.radio("Gender", ["Female", "Male"])
+age = st.number_input("Age", 10, 80, 25)
+gender = st.radio("Gender", ["Female", "Male", "Other"])
 height = st.number_input("Height (cm)", 100, 220, 165)
 weight = st.number_input("Weight (kg)", 30, 150, 60)
 
